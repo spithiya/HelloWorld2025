@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaLens | Hydration Nutrition Tracking</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <script src="env-config.js"></script>
+    <script type="module">
+        import OpenAI from "https://cdn.jsdelivr.net/npm/openai@5.22.0/dist/browser/index.mjs";
+        window.OpenAI = OpenAI;
+
+        const { initializeHydrationApp } = await import("./script.js");
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initializeHydrationApp, { once: true });
+        } else {
+            initializeHydrationApp();
+        }
+    </script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">AL</span>
+                <span class="brand-name">AquaLens</span>
+            </div>
+            <nav class="site-nav" aria-label="Primary">
+                <a href="#analyzer">Analyze</a>
+                <a href="#calculator">Calculator</a>
+                <a href="#log">Daily Log</a>
+                <a href="#tips">Tips</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+            <button class="cta" type="button" data-scroll-target="#analyzer">Start Tracking</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="inner">
+                <div class="hero-copy">
+                    <h1 id="hero-title">Smarter hydration from a single snap</h1>
+                    <p>Upload a meal or beverage photo and let GPT estimate how much water it contributes within seconds. Track totals, tune electrolytes, and stay aligned with your daily plan.</p>
+                    <div class="hero-actions">
+                        <button class="cta" type="button" data-scroll-target="#analyzer">Upload a photo</button>
+                        <a class="ghost" href="#faq">How it works</a>
+                    </div>
+                    <dl class="hero-metrics">
+                        <div>
+                            <dt>Water recognition</dt>
+                            <dd>95% food classes tracked</dd>
+                        </div>
+                        <div>
+                            <dt>Analysis speed</dt>
+                            <dd>&lt; 10 seconds per photo</dd>
+                        </div>
+                        <div>
+                            <dt>Goal alignment</dt>
+                            <dd>Adaptive to your plan</dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="hero-card" role="presentation">
+                    <div class="sparkle" aria-hidden="true"></div>
+                    <div class="preview">
+                        <img src="https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="Tall glass of infused water with citrus" loading="lazy">
+                        <div class="preview-meta">
+                            <span class="tag">Sample breakdown</span>
+                            <p><strong>Infused water</strong> - 14 fl oz captured</p>
+                            <p class="hint">Add one electrolyte serving</p>
+                        </div>
+                    </div>
+                    <div class="preview-stats">
+                        <div>
+                            <span class="label">Daily target</span>
+                            <span class="value">110 fl oz</span>
+                        </div>
+                        <div>
+                            <span class="label">Logged so far</span>
+                            <span class="value" data-stat="day-total">54 fl oz</span>
+                        </div>
+                        <div class="progress">
+                            <span class="label">Goal progress</span>
+                            <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="59">
+                                <span style="width:59%"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="analyzer" class="analyzer" aria-labelledby="analyzer-title">
+            <div class="inner">
+                <div class="section-heading">
+                    <h2 id="analyzer-title">Analyze your next meal</h2>
+                    <p>Drop in a photo and AquaLens will estimate water output plus recommended electrolyte balance using GPT vision.</p>
+                </div>
+
+                <div class="analyzer-grid">
+                    <form class="upload-card" aria-label="Upload meal photo">
+                        <div class="dropzone" id="dropzone" tabindex="0">
+                            <input id="photo-input" type="file" accept="image/*" aria-label="Upload meal photo">
+                            <div class="dropzone-icon" aria-hidden="true">CAM</div>
+                            <p class="dropzone-title">Drag &amp; drop your photo</p>
+                            <p class="dropzone-hint">or click to browse from your device</p>
+                            <p class="dropzone-note">Supported: JPG, PNG, HEIC - &lt; 15&nbsp;MB</p>
+                        </div>
+                        <div class="analysis-controls">
+                            <label class="toggle">
+                                <input type="checkbox" id="electrolyte-toggle" checked>
+                                <span>Suggest electrolyte adjustments</span>
+                            </label>
+                            <button id="analyze-button" type="button" disabled>Send to GPT</button>
+                        </div>
+                    </form>
+
+                    <article class="analysis-card" aria-live="polite">
+                        <header>
+                            <h3>Water estimate</h3>
+                            <p>Results appear here once your photo is processed.</p>
+                        </header>
+                        <div class="analysis-preview" hidden>
+                            <img id="analysis-preview-image" src="" alt="Uploaded meal" loading="lazy">
+                            <div class="analysis-preview-meta">
+                                <p class="analysis-title" data-analysis-field="title"></p>
+                                <p class="analysis-time" data-analysis-field="timestamp"></p>
+                            </div>
+                        </div>
+                        <dl class="analysis-metrics" hidden>
+                            <div>
+                                <dt>Water from this meal</dt>
+                                <dd data-analysis-field="water"></dd>
+                            </div>
+                            <div>
+                                <dt>Electrolytes</dt>
+                                <dd data-analysis-field="electrolytes"></dd>
+                            </div>
+                        </dl>
+                        <div class="analysis-summary" hidden data-analysis-field="summary"></div>
+                        <div class="analysis-tags" hidden data-analysis-field="tags"></div>
+                    </article>
+                </div>
+
+                <aside class="callout">
+                    <h4>API integration</h4>
+                    <p>Connect this UI to a GPT-4.1 Vision endpoint or your preferred nutrition model. Send the uploaded image bytes, prompt for water output, then map the response into the fields above.</p>
+                    <ul>
+                        <li>Normalize to the user&apos;s daily water goal</li>
+                        <li>Return electrolyte and mineral guidance</li>
+                        <li>Optionally include macronutrient context</li>
+                    </ul>
+                </aside>
+            </div>
+        </section>
+
+        <section id="calculator" class="calculator" aria-labelledby="calculator-title">
+            <div class="inner">
+                <div class="section-heading">
+                    <h2 id="calculator-title">Daily water calculator</h2>
+                    <p>Enter a few details to estimate the amount of water you should target each day.</p>
+                </div>
+                <div class="calculator-grid">
+                    <form id="intake-form" class="calculator-form" novalidate>
+                        <div class="field-group">
+                            <label for="input-weight">Weight (lb)</label>
+                            <input id="input-weight" type="number" min="80" max="400" step="1" placeholder="170" inputmode="decimal">
+                        </div>
+                        <div class="field-row">
+                            <div class="field-group">
+                                <label for="input-height-ft">Height (ft)</label>
+                                <input id="input-height-ft" type="number" min="4" max="7" step="1" placeholder="5" inputmode="decimal">
+                            </div>
+                            <div class="field-group">
+                                <label for="input-height-in">Height (in)</label>
+                                <input id="input-height-in" type="number" min="0" max="11" step="1" placeholder="10" inputmode="decimal">
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="input-activity">Activity level</label>
+                            <select id="input-activity">
+                                <option value="8">Sedentary (desk work)</option>
+                                <option value="16" selected>Moderate (3-4 workouts/week)</option>
+                                <option value="28">High (daily training)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="input-climate">Climate</label>
+                            <select id="input-climate">
+                                <option value="0" selected>Temperate</option>
+                                <option value="8">Warm / Humid</option>
+                                <option value="14">Hot / Arid</option>
+                            </select>
+                        </div>
+                        <div class="calculator-actions">
+                            <button id="calculate-intake" class="cta" type="button">Calculate need</button>
+                            <button id="apply-goal" class="ghost" type="button" disabled>Apply as daily goal</button>
+                        </div>
+                    </form>
+                    <div class="calculator-result" aria-live="polite">
+                        <h3>Your daily water need</h3>
+                        <p class="calculator-result-value" data-calculator-field="total">-- fl oz</p>
+                        <p class="calculator-result-note" data-calculator-field="details">Enter your details to estimate a personalized target.</p>
+                        <p class="calculator-result-footnote">These estimates are educational only. Consult a licensed professional for medical guidance.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="log" class="log" aria-labelledby="log-title">
+            <div class="inner">
+                <div class="section-heading">
+                    <h2 id="log-title">Daily water log</h2>
+                    <p>Monitor how each meal contributes to your overall water goal.</p>
+                </div>
+                <div class="log-grid">
+                    <div class="log-card">
+                        <table>
+                            <caption class="sr-only">Logged water entries</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Entry</th>
+                                    <th scope="col">Water (fl oz)</th>
+                                    <th scope="col">Electrolytes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-rows"></tbody>
+                        </table>
+                    </div>
+                    <div class="log-summary">
+                        <div class="log-summary-card">
+                            <h3>Today&#39;s progress</h3>
+                            <p>Goal: <strong data-stat="daily-goal">110 fl oz</strong></p>
+                            <div class="radial" role="img" aria-label="Water goal completion">
+                                <svg viewBox="0 0 120 120">
+                                    <circle class="track" cx="60" cy="60" r="52"></circle>
+                                    <circle class="progress" cx="60" cy="60" r="52" stroke-dasharray="326" stroke-dashoffset="326" data-stat="radial"></circle>
+                                </svg>
+                                <div class="radial-value" data-stat="radial-label">0%</div>
+                            </div>
+                            <ul class="summary-list">
+                                <li data-stat="summary-top"></li>
+                                <li data-stat="summary-secondary"></li>
+                                <li data-stat="summary-tip"></li>
+                            </ul>
+                        </div>
+                        <div class="log-summary-card insights">
+                            <h3>Micro-insights</h3>
+                            <ul id="insights-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tips" class="tips" aria-labelledby="tips-title">
+            <div class="inner">
+                <div class="section-heading">
+                    <h2 id="tips-title">Hydration playbook</h2>
+                    <p>Balance water intake with minerals and fuel so your body absorbs what it needs.</p>
+                </div>
+                <div class="tips-grid">
+                    <article>
+                        <h3>Layer fluids throughout the day</h3>
+                        <p>Distribute water across meals and workouts. Small, frequent servings lead to better retention than last minute chugging.</p>
+                    </article>
+                    <article>
+                        <h3>Pair electrolytes with sweat sessions</h3>
+                        <p>Sodium, potassium, and magnesium keep water where it matters. Add an electrolyte serving for every 60 minutes of intense movement.</p>
+                    </article>
+                    <article>
+                        <h3>Watch caffeine and alcohol</h3>
+                        <p>Both increase fluid loss. Counter each serving by adding 8 to 12 fl oz of water to maintain your baseline.</p>
+                    </article>
+                    <article>
+                        <h3>Eat your water</h3>
+                        <p>Fruits, soups, and leafy greens can contribute up to twenty percent of daily fluids. GPT vision helps quantify their impact in context.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="faq" aria-labelledby="faq-title">
+            <div class="inner">
+                <div class="section-heading">
+                    <h2 id="faq-title">Frequently asked</h2>
+                    <p>From model prompts to data privacy, here is what most athletes and nutritionists want to know.</p>
+                </div>
+                <div class="faq-items">
+                    <details>
+                        <summary>How does GPT estimate water from a photo?</summary>
+                        <p>The model classifies food and beverages, estimates water content based on nutrition databases, then adjusts for portion size. Results are normalized to your personal baseline.</p>
+                    </details>
+                    <details>
+                        <summary>Can I adjust for individual goals?</summary>
+                        <p>Yes, set your target intake in the settings module (coming soon) or apply the calculator estimate above. The UI will recalculate your daily progress and recommendations.</p>
+                    </details>
+                    <details>
+                        <summary>Is my data private?</summary>
+                        <p>Images are processed securely via encrypted transport. You can choose whether to store analysis history or keep it session based.</p>
+                    </details>
+                    <details>
+                        <summary>What about macronutrients?</summary>
+                        <p>Extend the prompt to request macros, micronutrients, or allergy flags. AquaLens is designed to host multiple model outputs in a single report.</p>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="inner">
+            <p>&copy; <span id="year"></span> AquaLens. Built for nutritionists, trainers, and anyone who wants data driven hydration.</p>
+            <div class="footer-links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="mailto:hello@aqualens.app">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
+
